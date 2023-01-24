@@ -69,6 +69,14 @@ void str_trim_lf(char* arr, int length);
 /*
  * Author: Chris Martinez
  * Version: 1.0
+ * Date: January 24, 2023
+ * Desc: Add a client to the chatroom queue
+*/
+void add_client(client_t* client);
+
+/*
+ * Author: Chris Martinez
+ * Version: 1.0
  * Date: January 23, 2023
  * Desc: Main - Runs the server for the chatroom
 */
@@ -202,4 +210,18 @@ void str_trim_lf(char* arr, int length) {
             break;
         }
     }
+}
+
+void add_client(client_t* client) {
+    pthread_mutex_lock(&clients_mutex);
+
+    int i = 0;
+    for (i = 0; i < MAX_CLIENTS; i++) {
+        if (!clients[i]) {
+            clients[i] = client;
+            break;
+        }
+    }
+
+    pthread_mutex_unlock(&clients_mutex);
 }
