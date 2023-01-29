@@ -17,6 +17,7 @@
 
 #define MAX_CLIENTS 100
 #define BUFFER_SIZE 2048
+#define NAME_SIZE 32
 #define BACK_LOGS 10
 
 static _Atomic unsigned int client_count = 0; /* Need to review _Atomic, unsure on what it really does */
@@ -81,6 +82,22 @@ void add_client(client_t* client);
  * Desc: Remove a client to the chatroom queue
 */
 void remove_client(int uid);
+
+/*
+ * Author: Chris Martinez
+ * Version: 1.0
+ * Date: January 28, 2023
+ * Desc: Sends messages to clients in chatroom
+*/
+void send_message(char* msg, int uid);
+
+/*
+ * Author: Chris Martinez
+ * Version: 1.0
+ * Date: January 28, 2023
+ * Desc: Handles the clients when joining the queue
+*/
+void* handle_client(void* arg);
 
 /***********Main***********/
 /*
@@ -183,6 +200,20 @@ int main(int argc, char* argv[]) {
             close(clientfd);
             continue;
         }
+
+        /* Client Settings */
+        client_t* client = (client_t*)malloc(sizeof(client_t));
+        client->address = *((struct sockaddr_in*)(get_in_addr((struct sockaddr*)&client_addr)));
+        client->sockfd = clientfd;
+        client->uid = uid++;
+
+        /* Add Client to the queue */
+        add_client(client);
+        pthread_create(&tid, NULL, &handle_client, (void*)client);
+
+        /* Tutorial says Reduce CPU Usage...not sure what this means when we're just sleeping */
+        sleep(1);
+
     }
 
 
@@ -251,4 +282,78 @@ void remove_client(int uid) {
     }
     
     pthread_mutex_unlock(&clients_mutex);
+}
+
+void send_message(char* msg, int uid) {
+    pthread_mutex_lock(&clients_mutex);
+
+    int i = 0;
+    for (i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i]) {
+            if (clients[i]->uid != uid) {
+                if (write(clients[i]->sockfd, msg, strlen(msg)) < 0) {
+                    fprintf(stderr, "Error: unable to send message\n");
+                    break;
+                }
+            }
+        }
+    }
+
+    pthread_mutex_unlock(&clients_mutex);
+}
+
+void* handle_client(void* arg) {
+    char buffer[BUFFER_SIZE];
+    char name[NAME_SIZE];
+    int leave_flag = 0;
+
+    client_count++;
+    client_t* client = (client_t*)arg;
+
+    /* Get Name */
+    if (recv(client->sockfd, name, NAME_SIZE, 0) <= 0 || strlen(name) < 2 || strlen(name) >= NAME_SIZE - 1) {
+        fprintf(stderr, "Error: Name format incorrect\n");
+        leave_flag = 1;
+    } else {
+        strncpy(client->name, name, NAME_SIZE);
+        sprintf(buffer, "%s has joined the chatroom\n", client->name);
+        fprintf(stdout, "%s", buffer);
+        send_message(buffer, client->uid);
+    }
+
+    memset(buffer, 0, BUFFER_SIZE);
+
+    while (1) {
+        if (leave_flag) {
+            break;
+        }
+        int receive = recv(client->sockfd, buffer, BUFFER_SIZE, 0);
+
+        if (receive > 0) {
+            if (strlen(buffer) > 0) {
+                send_message(buffer, client->uid);
+                str_trim_lf(buffer, strlen(buffer));
+                fprintf(stdout, "%s -> %s", buffer, client->name);
+            }
+        } else if (receive == 0 || strncmp(buffer, "exit", sizeof(buffer) == 0)) {
+            sprintf(buffer, "%s has left the chatroom\n", client->name);
+            fprintf(stdout, "%s", buffer);
+            send_message(buffer, client->uid);
+            leave_flag = 1;
+        } else {
+            fprintf(stderr, "Error: -1\n");
+            leave_flag = -1;
+        }
+        
+        memset(buffer, 0, BUFFER_SIZE);
+    }
+
+    close(client->sockfd);
+    remove_client(client->uid);
+    free(client);
+    client = NULL;
+    client_count--;
+    pthread_detach(pthread_self());
+
+    return NULL;
 }
