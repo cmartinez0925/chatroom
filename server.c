@@ -77,6 +77,15 @@ void add_client(client_t* client);
 /*
  * Author: Chris Martinez
  * Version: 1.0
+ * Date: January 28, 2023
+ * Desc: Remove a client to the chatroom queue
+*/
+void remove_client(int uid);
+
+/***********Main***********/
+/*
+ * Author: Chris Martinez
+ * Version: 1.0
  * Date: January 23, 2023
  * Desc: Main - Runs the server for the chatroom
 */
@@ -223,5 +232,23 @@ void add_client(client_t* client) {
         }
     }
 
+    pthread_mutex_unlock(&clients_mutex);
+}
+
+void remove_client(int uid) {
+    
+    pthread_mutex_lock(&clients_mutex);
+    int i = 0;
+
+    /* Cycle through MAX_CLIENTS and deleted matching uid */
+    for (i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i]) {
+            if (clients[i]->uid == uid) {
+                clients[i] = NULL;
+                break;
+            }
+        }
+    }
+    
     pthread_mutex_unlock(&clients_mutex);
 }
