@@ -236,6 +236,7 @@ void add_client(client_t* client) {
 }
 
 void remove_client(int uid) {
+    
     pthread_mutex_lock(&clients_mutex);
     int i = 0;
 
