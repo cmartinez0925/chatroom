@@ -23,7 +23,12 @@
 static _Atomic unsigned int client_count = 0; /* Need to review _Atomic, unsure on what it really does */
 static int uid = 10;
 
-/* Client Structure */
+/*
+ * Author: Chris Martinez
+ * Version: 1.0
+ * Date: January 23, 2023
+ * Desc: client_t struct
+*/
 typedef struct {
     struct sockaddr_in address;
     int sockfd;
@@ -129,7 +134,7 @@ int main(int argc, char* argv[]) {
     memset(&hints, 0, sizeof hints);
     hints.ai_addr = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
+    hints.ai_flags = AI_PASSIVE; /* Will use my address */
 
     if ((rv = getaddrinfo(NULL, port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "Error: getaddrinfo - %s\n", gai_strerror(rv));
@@ -172,7 +177,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    puts("***** WELCOME TO LINK'S CHATROOM *****");
+    puts("***** WELCOME TO LiNNNk'S CHATROOM *****");
 
     /* Infinite Loop - Essentially Chatroom engine */
     while (1) {
@@ -317,11 +322,11 @@ void* handle_client(void* arg) {
     } else {
         strncpy(client->name, name, NAME_SIZE);
         sprintf(buffer, "%s has joined the chatroom\n", client->name);
-        fprintf(stdout, "%s", buffer);
-        send_message(buffer, client->uid);
+        fprintf(stdout, "%s", buffer); /* Print to server */
+        send_message(buffer, client->uid); /* Print to all clients */
     }
 
-    memset(buffer, 0, BUFFER_SIZE);
+    memset(buffer, 0, BUFFER_SIZE); /* Clear the buffer for next message */
 
     while (1) {
         if (leave_flag) {
@@ -333,7 +338,7 @@ void* handle_client(void* arg) {
             if (strlen(buffer) > 0) {
                 send_message(buffer, client->uid);
                 str_trim_lf(buffer, strlen(buffer));
-                fprintf(stdout, "%s -> %s", buffer, client->name);
+                fprintf(stdout, "%s\n", buffer);
             }
         } else if (receive == 0 || strncmp(buffer, "exit", sizeof(buffer) == 0)) {
             sprintf(buffer, "%s has left the chatroom\n", client->name);
