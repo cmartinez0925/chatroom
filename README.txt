@@ -1,4 +1,4 @@
-Multi client chatroom (100 People Max)
+Terminal Based Multi-client chatroom (100 People Max)
 Author: Chris Martinez
 Version: 1.0
 
