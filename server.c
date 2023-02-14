@@ -2,76 +2,15 @@
 ** server.c -- A stream socket server for a chatroom
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <errno.h>
-#include <signal.h>
-#include <netdb.h>
-#include <pthread.h>
-
-#define MAX_CLIENTS 100
-#define BUFFER_SIZE 2048
-#define NAME_SIZE 32
-#define BACK_LOGS 10
+#include "network_util.h"
 
 static _Atomic unsigned int client_count = 0; /* Need to review _Atomic, unsure on what it really does */
 static int uid = 10;
-
-/*
- * Author: Chris Martinez
- * Version: 1.0
- * Date: January 23, 2023
- * Desc: client_t struct
-*/
-typedef struct {
-    struct sockaddr_in address;
-    int sockfd;
-    int uid;
-    char name[INET6_ADDRSTRLEN];
-} client_t;
 
 client_t* clients[MAX_CLIENTS];
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /********** Function Prototypes **********/
-/*
- * Author: Chris Martinez
- * Version: 1.0
- * Date: January 23, 2023
- * Desc: Gets the socket address, IPv4 or IPv6
-*/
-void* get_in_addr(struct sockaddr* sa);
-
-/*
- * Author: Chris Martinez
- * Version: 1.0
- * Date: January 23, 2023
- * Desc: Gets the socket port
-*/
-int get_in_port(struct sockaddr* sa);
-
-/*
- * Author: Chris Martinez
- * Version: 1.0
- * Date: January 24, 2023
- * Desc: Creates input section on stdout for typing
-*/
-void text_prompt_stdout();
-
-/*
- * Author: Chris Martinez
- * Version: 1.0
- * Date: January 24, 2023
- * Desc: Trims
-*/
-void str_trim_lf(char* arr, int length);
-
 /*
  * Author: Chris Martinez
  * Version: 1.0
@@ -227,36 +166,6 @@ int main(int argc, char* argv[]) {
 
 
 /********** Function Definitions **********/
-void* get_in_addr(struct sockaddr* sa) {
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
-int get_in_port(struct sockaddr* sa) {
-        if (sa->sa_family == AF_INET) {
-        return ((struct sockaddr_in*)sa)->sin_port;
-    }
-    return ((struct sockaddr_in6*)sa)->sin6_port;
-}
-
-void text_prompt_stdout() {
-    fprintf(stdout, "\r%s", "> ");
-    fflush(stdout);
-}
-
-void str_trim_lf(char* arr, int length) {
-    int i;
-
-    for (i = 0; i < length; i++) {
-        if (arr[i] == '\n') {
-            arr[i] = '\0';
-            break;
-        }
-    }
-}
-
 void add_client(client_t* client) {
     pthread_mutex_lock(&clients_mutex);
 

@@ -1,23 +1,7 @@
 /*
 ** client.c -- A client for the chatroom
 */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <errno.h>
-#include <signal.h>
-#include <netdb.h>
-#include <pthread.h>
-
-#define MAX_CLIENTS 100
-#define BUFFER_SIZE 2048
-#define NAME_SIZE 32
+#include "network_util.h"
 
 volatile sig_atomic_t flag = 0;
 int sockfd = 0;
@@ -28,33 +12,9 @@ char name[NAME_SIZE];
  * Author: Chris Martinez
  * Version: 1.0
  * Date: January 24, 2023
- * Desc: Creates input section on stdout for typing
-*/
-void text_prompt_stdout();
-
-/*
- * Author: Chris Martinez
- * Version: 1.0
- * Date: January 24, 2023
- * Desc: Trims
-*/
-void str_trim_lf(char* arr, int length);
-
-/*
- * Author: Chris Martinez
- * Version: 1.0
- * Date: January 24, 2023
  * Desc: Catches ctrl+c and exit to leave chatroom
 */
 void leave_chatroom_signal();
-
-/*
- * Author: Chris Martinez
- * Version: 1.0
- * Date: January 23, 2023
- * Desc: Gets the socket address, IPv4 or IPv6
-*/
-void* get_in_addr(struct sockaddr* sa);
 
 /*
  * Author: Chris Martinez
@@ -168,31 +128,8 @@ int main(int argc, char* argv[]) {
 
 
 /********** Function Definitions **********/
-void text_prompt_stdout() {
-    fprintf(stdout, "\r%s", "> ");
-    fflush(stdout);
-}
-
-void str_trim_lf(char* arr, int length) {
-    int i;
-
-    for (i = 0; i < length; i++) {
-        if (arr[i] == '\n') {
-            arr[i] = '\0';
-            break;
-        }
-    }
-}
-
 void leave_chatroom_signal() {
     flag = 1;
-}
-
-void* get_in_addr(struct sockaddr* sa) {
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
 void recv_msg_handler() {
@@ -221,7 +158,7 @@ void send_msg_handler() {
         fgets(buffer, BUFFER_SIZE, stdin);
         str_trim_lf(buffer, BUFFER_SIZE);
 
-        if (strncmp(buffer, "exit", strlen("exit") == 0)) {
+        if (strncmp(buffer, "exit", strlen("exit")) == 0) {
             break;
         } else {
             sprintf(message, "%s: %s\n", name, buffer);
